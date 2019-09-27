@@ -7,3 +7,20 @@
     text-align: center;
 }
 
+.column {
+  border: 1px solid rgba(0, 0, 0, 0.8);
+  padding: 30px;
+  width: 75px;
+  max-width: 75px;
+  height: 75px;
+  max-height: 75px;
+  display: inline-block;
+  background-color: rgba(95, 158, 160);
+}
+
+.tileshow {
+  max-height: 70px;
+  height: 70px;
+  text-align: center;
+  background-color: rgba(27, 209, 139, 0.5);
+}
