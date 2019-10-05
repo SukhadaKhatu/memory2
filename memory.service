@@ -3,14 +3,14 @@ Description=Memory Game
 
 [Service]
 Type=simple
-User=memory
-Group=memory
+User=root
+Group=root
 Restart=on-failure
 Environment=MIX_ENV=prod "PORT=4791"
 Environment=LANG=en_US.UTF-8
 
-WorkingDirectory=/home/memory/memory
-ExecStart=bash /home/memory/memory/start.sh
+WorkingDirectory=/home/sukhada/memory2
+ExecStart=bash /home/sukhada/memory2/start.sh
 
 [Install]
 WantedBy=multi-user.target
