@@ -2,102 +2,84 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import _ from 'lodash';
 
-export default function game_init(root) {
-  ReactDOM.render(<Starter />, root);
+export default function game_init(root, channel) {
+  ReactDOM.render(<Starter channel={channel} />, root);
 }
 
 class Starter extends React.Component {
   constructor(props) {
     super(props);
+    this.channel = props.channel;
     let tiles = []
     let symbols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-    symbols.sort(() => 0.5 - Math.random());
+    
     let id = 1;
     for(let i = 0; i < 16; i++) {
       tiles.push({id: id, clicked: false, value: symbols[i], active: true});
       id++;
     }
     this.state = { 
-      tiles: tiles,
-      prev: null,
-      current: null,
-      moves: 0,
-  };
+     tiles: tiles,
+     prev: null,
+     current: null,
+     moves: 0,
+    };
+    
+    this.channel
+        .join()
+        .receive("ok", this.got_view.bind(this))
+        .receive("error", resp => { console.log("Unable to join", resp); });
   }
 
-  reset() {
-   let symbols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-   let tiles = []
-   symbols.sort(() => 0.5 - Math.random());
-   let id = 1;
-   for(let i = 0; i < 16; i++) {
-     tiles.push({id: id, clicked: false, value: symbols[i], active: true});
-     id++;
-   }
-   this.setState({tiles: tiles,
-    prev: null,
-    current: null,
-    moves: 0});
+  got_view(view) {
+    console.log("new view", view);
+    this.setState(view.game);
   }
 
-  checkValue(tile) {
+  on_reset(ev) {
+    this.channel.push("reset", { })
+        .receive("ok", this.got_view.bind(this));
+  }
+
+  on_click(tile) {
     if(tile.active == true) {
-      let prev = this.state.prev;
-      let current = this.state.current;
-      let moves = this.state.moves;
-      moves++;
-      if(prev != null) {
-        prev.clicked = false;
-      }
-      prev = current;
-      current = tile;
-      if(prev != null && current != null) {
-        if(prev.value == current.value) {
-          console.log("Match found")
-          prev.active = false;
-          current.active = false;
-          current = null;
-          prev = null;
-          this.setState({prev: prev,
-          current: current,
-          moves: moves});
-        }else {
-          console.log("No match")
-          prev.clicked = true;
-          current.clicked = true;
-          this.setState({prev: prev, current: current, moves: moves});         
-          this.timer = setTimeout(() => this.setTimer(prev, current), 1000);
+      this.channel.push("clearstate", { }).receive("ok", this.got_view.bind(this));
+      this.channel.push("moves", { }).receive("ok", this.got_view.bind(this));
+      this.channel.push("prevcurrent", { tile: tile}).receive("ok", this.got_view.bind(this));
+      let view = this.channel.push("checkmatch", { tile: tile}).receive("ok", this.got_view.bind(this));
+      
+      if(this.state.prev != null && this.state.current != null){
+        if(this.state.prev.value != this.state.current.value) {
+          let prev = this.state.prev;
+          let current = this.state.current;
+          this.timer = setTimeout(() => this.setTimer(current, tile), 1000);
         }
-      }else {
-        console.log("null")
-        if(prev != null) {
-          prev.clicked = true;
-        } 
-        if(current != null) {
-          current.clicked = true;
-        }
-        this.setState({prev: prev, current: current, moves: moves});
-      }
-      console.log(prev)
-      console.log(current)
-      console.log(this.state.tiles)
       }
     }
+  }
 
     setTimer(prev, current) {
+      let tiles = this.state.tiles;
       if(prev != null) {
-        prev.clicked = false;
+        for(let i = 0; i < 16; i++) {
+          if(tiles[i].id == prev.id) {
+            tiles[i].clicked = false;
+          }
+        }
       }
       if(current != null) {
-        current.clicked = false;
+        for(let i = 0; i < 16; i++) {
+          if(tiles[i].id == current.id) {
+            tiles[i].clicked = false;
+          }
+        }
       }
-      current = null;
-      prev = null;
+      
       this.setState({
-        prev: prev,
-        current: current
+        prev: null,
+        current: null,
+        tiles: tiles
       });
       clearTimeout(this.timer);
     }
@@ -111,7 +93,7 @@ class Starter extends React.Component {
       let cols = [];
       for (let jj = 0; jj < 4; ++jj) {
         let tile = tiles[index];
-        let col = <div className="column" key={index} onClick={() => this.checkValue(tile)}>
+        let col = <div className="column" key={index} onClick={() => this.on_click(tile)}>
           <Tile key={index} tile={tile}/>
         </div>;
         index++;
@@ -131,7 +113,7 @@ class Starter extends React.Component {
           <p>Moves: {this.state.moves}</p>
         </div>
         <div>
-          <button onClick={() => this.reset()}>Reset</button>
+          <button onClick={this.on_reset.bind(this)}>Reset</button>
         </div>
         </div>
         {rows}

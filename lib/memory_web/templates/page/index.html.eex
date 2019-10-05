@@ -1,3 +1,7 @@
-<div id="root">
-  React app loading...
+<h1>Join A Game</h1>
+<div id="formid">
+  <%= form_for @conn, "/game", fn f -> %>
+      <p>Enter username: <%= text_input f, :name %></p>
+      <p><%= submit "Join" %></p>
+  <% end %>
 </div>
